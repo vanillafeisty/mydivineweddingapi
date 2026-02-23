@@ -1,0 +1,43 @@
+{
+  "name": "divine-matrimony-server",
+  "version": "1.0.0",
+  "description": "Secure backend server for Divine Matrimony platform",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch src/index.js",
+    "start": "node src/index.js",
+    "migrate": "node migrations/run.js",
+    "lint": "eslint src/",
+    "test": "node --test src/**/*.test.js"
+  },
+  "keywords": [
+    "matrimony",
+    "backend",
+    "nodejs",
+    "express",
+    "mysql",
+    "jwt"
+  ],
+  "author": "Divine Matrimony",
+  "license": "ISC",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "express-rate-limit": "^6.10.0",
+    "express-validator": "^7.0.0",
+    "helmet": "^7.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.0",
+    "multer": "^2.0.2",
+    "mysql2": "^3.6.5",
+    "nodemailer": "^7.0.13",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "eslint": "^8.54.0",
+    "nodemon": "^3.0.2"
+  }
+}

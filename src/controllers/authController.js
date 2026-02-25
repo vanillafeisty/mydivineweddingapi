@@ -11,20 +11,26 @@ dotenv.config();
 // --- LOGIN LOGIC ---
 export const loginUser = async (req, res) => {
   try {
-    const { email_address, password, isAdminLogin } = req.body;
+    const email = req.body.email || req.body.email_address;
+    const password = req.body.password;
+    const isAdmin = req.body.isAdmin || req.body.isAdminLogin || false;
+    
+    console.log(`🚀 Login Attempt: ${email} (IsAdmin: ${isAdmin})`);
 
-    // Login with Email OR Mobile
-    // Admin table schema check needed? Assuming admin_credentials uses id (int) or varchar? 
-    // run.js doesn't show admin_credentials creation, likely manually created or in another migration file not shown.
-    // Spec assumes admin_credentials.id is fine.
+    // 2. Prevent "Undefined" Crash
+    if (!email || !password) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Email and Password are required" 
+      });
+    }
 
-    // Users table now uses 'profile_id' (INT) as PK.
 
     const query = isAdminLogin
       ? `SELECT id, email_address as email, password, role_id FROM admin_credentials WHERE email_address = ?`
       : `SELECT profile_id as id, email_address as email, mobile_no, password, role_id, change_password, status FROM users WHERE email_address = ? OR mobile_no = ?`;
 
-    const params = isAdminLogin ? [email_address] : [email_address, email_address];
+    const params = isAdminLogin ? [email.trim()] : [email.trim(), email.trim()];
     const results = await executeQuery(query, params);
 
     if (results.length === 0) return res.status(401).json({ success: false, message: "Invalid identity" });

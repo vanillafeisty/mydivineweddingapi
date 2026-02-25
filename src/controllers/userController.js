@@ -7,6 +7,10 @@ export const getAllUsers = async (req, res) => {
 
     const users = await executeQuery(query, []);
 
+    const protocol = req.protocol;
+    const host = req.get('host');
+    const fullServerUrl = `${protocol}://${host}`;
+
     const formattedUsers = users.map(user => {
       // Gender Mapping
       const genderMap = { 1: 'Male', 2: 'Female' };
@@ -25,7 +29,9 @@ export const getAllUsers = async (req, res) => {
         plan: user.plan || 'free',
         joinedDate: user.created_at,
         verified: user.status === 'verified',
-        avatar: user.profile_photo ? `http://localhost:5000/${user.profile_photo}` : `https://ui-avatars.com/api/?name=${user.first_name}&background=random`,
+         avatar: user.profile_photo 
+          ? `${fullServerUrl}/${user.profile_photo}` 
+          : `https://ui-avatars.com/api/?name=${user.first_name || 'U'}&background=random`,
 
         // --- Identity ---
         dob: user.dob,
@@ -83,7 +89,7 @@ export const getAllUsers = async (req, res) => {
 export const getAdminsOnly = async (req, res) => {
   try {
     const admins = await executeQuery(
-      "SELECT id, firstName, lastName, email_address as email, role, role_id, status FROM users WHERE role_id IN (1, 2)",
+      "SELECT id, firstName, lastName, email_address, role_id, status FROM users WHERE role_id IN (1, 2)",
       []
     );
     res.json({ success: true, data: admins });
@@ -109,8 +115,12 @@ export const updateProfile = async (req, res) => {
     `;
 
     const params = [
-      data.location, data.address, data.caste, data.sub_caste,
-      data.education, data.occupation,
+      data.location || null, 
+      data.address || null, 
+      data.caste || null, 
+      data.sub_caste || null,
+      data.education || null, 
+      data.occupation || null,
       userId
     ];
 

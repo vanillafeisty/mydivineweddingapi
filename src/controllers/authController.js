@@ -26,11 +26,11 @@ export const loginUser = async (req, res) => {
     }
 
 
-    const query = isAdminLogin
+    const query = isAdmin
       ? `SELECT id, email_address as email, password, role_id FROM admin_credentials WHERE email_address = ?`
       : `SELECT profile_id as id, email_address as email, mobile_no, password, role_id, change_password, status FROM users WHERE email_address = ? OR mobile_no = ?`;
 
-    const params = isAdminLogin ? [email.trim()] : [email.trim(), email.trim()];
+    const params = isAdmin ? [email.trim()] : [email.trim(), email.trim()];
     const results = await executeQuery(query, params);
 
     if (results.length === 0) return res.status(401).json({ success: false, message: "Invalid identity" });

@@ -11,7 +11,7 @@ dotenv.config();
 // --- LOGIN LOGIC ---
 export const loginUser = async (req, res) => {
   try {
-    const { email, password, isAdminLogin } = req.body;
+    const { email_address, password, isAdminLogin } = req.body;
 
     // Login with Email OR Mobile
     // Admin table schema check needed? Assuming admin_credentials uses id (int) or varchar? 
@@ -21,10 +21,10 @@ export const loginUser = async (req, res) => {
     // Users table now uses 'profile_id' (INT) as PK.
 
     const query = isAdminLogin
-      ? `SELECT id, email, password, role_id FROM admin_credentials WHERE email = ?`
+      ? `SELECT id, email_address as email, password, role_id FROM admin_credentials WHERE email_address = ?`
       : `SELECT profile_id as id, email_address as email, mobile_no, password, role_id, change_password, status FROM users WHERE email_address = ? OR mobile_no = ?`;
 
-    const params = isAdminLogin ? [email] : [email, email];
+    const params = isAdminLogin ? [email_address] : [email_address, email_address];
     const results = await executeQuery(query, params);
 
     if (results.length === 0) return res.status(401).json({ success: false, message: "Invalid identity" });
@@ -53,7 +53,7 @@ export const loginUser = async (req, res) => {
       success: true,
       data: {
         userId: user.id,
-        email: user.email,
+        email_address: user.email_address,
         role: roleId,
         accessToken,
         changePassword: user.change_password
@@ -103,7 +103,7 @@ export const logoutUser = async (req, res) => {
 export const getAllAdmins = async (req, res) => {
   try {
     const admins = await executeQuery(
-      "SELECT id, firstName, email, role_id, status FROM admin_credentials",
+      "SELECT id, firstName, email_address as email, role_id, status FROM admin_credentials",
       []
     );
     const formatted = admins.map(a => ({
@@ -122,12 +122,12 @@ export const getAllAdmins = async (req, res) => {
 
 // --- ADD ADMIN (By Super Admin) ---
 export const addAdminBySuperAdmin = async (req, res) => {
-  const { email, firstName, lastName } = req.body;
+  const { email_address, firstName, lastName } = req.body;
   const Password = 'secure123';
   const hashed = await hashPassword(Password);
   await executeQuery(
-    "INSERT INTO admin_credentials (firstName, lastName, email, password, role_id) VALUES (?, ?, ?, ?, 2)",
-    [firstName, lastName, email, hashed]
+    "INSERT INTO admin_credentials (firstName, lastName, email_address, password, role_id) VALUES (?, ?, ?, ?, 2)",
+    [firstName, lastName, email_address, hashed]
   );
 
   res.json({ success: true, message: "Admin added!" });
@@ -136,12 +136,12 @@ export const addAdminBySuperAdmin = async (req, res) => {
 // --- RESET ADMIN PASSWORD (Forget Password) ---
 export const resetAdminPassword = async (req, res) => {
   try {
-    const { email, newPassword } = req.body;
+    const { email_address, newPassword } = req.body;
 
     // 1. Check if admin exists
     const admins = await executeQuery(
-      "SELECT id FROM admin_credentials WHERE email = ?",
-      [email]
+      "SELECT id FROM admin_credentials WHERE email_address = ?",
+      [email_address]
     );
 
     if (admins.length === 0) {
@@ -153,8 +153,8 @@ export const resetAdminPassword = async (req, res) => {
 
     // 3. Update password
     await executeQuery(
-      "UPDATE admin_credentials SET password = ? WHERE email = ?",
-      [hashed, email]
+      "UPDATE admin_credentials SET password = ? WHERE email_address = ?",
+      [hashed, email_address]
     );
 
     res.json({ success: true, message: "Password updated successfully" });
@@ -169,7 +169,7 @@ export const resetAdminPassword = async (req, res) => {
 // --- REGISTER USER (Simple) ---
 export const registerUser = async (req, res) => {
   try {
-    const { firstName, lastName, email } = req.body;
+    const { firstName, lastName, email_address } = req.body;
     const userPassword = 'password123';
     // profile_id is AUTO_INCREMENT, so no uuid needed for users table.
     // However, if we need valid data for other non-null fields:
@@ -191,7 +191,7 @@ export const registerUser = async (req, res) => {
        ) VALUES (?, ?, ?, ?, 3, 'active', '1990-01-01', 1, '0000000000')`,
       // providing dummy mobile/dob to satisfy schema constraint if not provided?
       // This simple registerUser might be legacy.
-      [firstName, lastName, email, hashed]
+      [firstName, lastName, email_address, hashed]
     );
 
     res.status(201).json({ success: true, message: "Registration successful! Default password: password123" });
@@ -224,7 +224,7 @@ export const getCurrentUser = async (req, res) => {
         ...user,
         firstName: user.first_name,
         lastName: user.last_name,
-        email: user.email_address,
+        email_address: user.email_address,
         mobile: user.mobile_no
       }
     });
@@ -286,7 +286,7 @@ export const verifyPhoneCode = async (req, res) => {
 
     res.json({
       success: true,
-      data: { accessToken, role: user.role_id, email: user.email }
+      data: { accessToken, role: user.role_id, email_address: user.email_address }
     });
   } catch (error) {
     console.error("Verify Code Error:", error);
@@ -344,13 +344,13 @@ const transporter = nodemailer.createTransport({
 export const sendVerificationMail = async (req, res) => {
 
   try {
-    const { email } = req.body;
+    const { email_address } = req.body;
     const code = Math.random().toString(36).substring(2, 8).toUpperCase();
 
     // 1. Send the  email
     await transporter.sendMail({
       from: '"Divine Matrimony" <noreply.divinematrimony@gmail.com>',
-      to: email,
+      to: email_address,
       subject: "Your Identity Verification Code",
       text: `Your verification code is: ${code}`
     });
@@ -371,10 +371,10 @@ export const sendVerificationMail = async (req, res) => {
 // 2. SEND FINAL SUCCESS CONFIRMATION
 export const sendRegistrationSuccessMail = async (req, res) => {
   try {
-    const { email, firstName, username, password } = req.body;
+    const { email_address, firstName, username, password } = req.body;
     await transporter.sendMail({
       from: '"Divine Matrimony" <noreply.divinematrimony@gmail.com>',
-      to: email,
+      to: email_address,
       subject: "Welcome to Divine Matrimony! - Registration Successful",
       html: `
         <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">

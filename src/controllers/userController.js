@@ -18,7 +18,7 @@ export const getAllUsers = async (req, res) => {
         id: user.profile_id,
         name: `${user.first_name || ''} ${user.last_name || ''}`.trim(),
         username: user.username,
-        email: user.email_address,
+        email_address: user.email_address,
         mobile: user.mobile_no || 'No Phone',
         role: 'User', // Fixed for this query
         status: user.status || 'active',
@@ -83,7 +83,7 @@ export const getAllUsers = async (req, res) => {
 export const getAdminsOnly = async (req, res) => {
   try {
     const admins = await executeQuery(
-      "SELECT id, firstName, lastName, email, role, role_id, status FROM users WHERE role_id IN (1, 2)",
+      "SELECT id, firstName, lastName, email_address as email, role, role_id, status FROM users WHERE role_id IN (1, 2)",
       []
     );
     res.json({ success: true, data: admins });

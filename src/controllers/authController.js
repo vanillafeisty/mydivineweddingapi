@@ -11,61 +11,52 @@ dotenv.config();
 // --- LOGIN LOGIC ---
 export const loginUser = async (req, res) => {
   try {
-    const email = req.body.email || req.body.email_address;
+    const email = (req.body.email || req.body.email_address || "").trim();
     const password = req.body.password;
-    const isAdmin = req.body.isAdmin || req.body.isAdminLogin || false;
     
-    console.log(`🚀 Login Attempt: ${email} (IsAdmin: ${isAdmin})`);
+    // This catches 'true', true, or 'isAdminLogin'
+    const isAdmin = req.body.isAdmin === true || 
+                    req.body.isAdminLogin === true || 
+                    req.body.isAdmin === 'true' ||
+                    req.body.isAdminLogin === 'true';
 
-    // 2. Prevent "Undefined" Crash
+    console.log(`[AUTH] Login Attempt: ${email} | AdminFlag: ${isAdmin}`);
+
     if (!email || !password) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Email and Password are required" 
-      });
+      return res.status(400).json({ success: false, message: "Email and password required" });
     }
 
-
+    // Determine which table to search
     const query = isAdmin
-      ? `SELECT id, email_address as email, password, role_id FROM admin_credentials WHERE email_address = ?`
-      : `SELECT profile_id as id, email_address as email, mobile_no, password, role_id, change_password, status FROM users WHERE email_address = ? OR mobile_no = ?`;
+      ? `SELECT id, email_address, password, role_id FROM admin_credentials WHERE email_address = ?`
+      : `SELECT profile_id as id, email_address, mobile_no, password, role_id, status FROM users WHERE email_address = ? OR mobile_no = ?`;
 
-    const params = isAdmin ? [email.trim()] : [email.trim(), email.trim()];
+    const params = isAdmin ? [email] : [email, email];
     const results = await executeQuery(query, params);
 
-    if (results.length === 0) return res.status(401).json({ success: false, message: "Invalid identity" });
-
-    const user = results[0];
-
-    // --- BCRYPT CHECK ---
-    const isPasswordValid = await comparePassword(password, user.password);
-    const isPlainMatch = (password === user.password);
-
-    if (!isPasswordValid && !isPlainMatch) {
-      return res.status(401).json({ success: false, message: "Invalid credentials" });
+    if (results.length === 0) {
+      return res.status(401).json({ success: false, message: "Invalid Identity - User not found" });
     }
 
-    // Role mapping
-    // users table 'role_id' is INT default 3.
-    let roleId = user.role_id;
+    const user = results[0];
+    const isPasswordValid = await comparePassword(password, user.password);
+    const isPlainMatch = (password === user.password); // Fallback for plain text
 
-    // generateTokens expects userId (string/int) and role (int or string?)
-    // If it expects string roles for claims?
-    // Let's pass what we have.
+    if (!isPasswordValid && !isPlainMatch) {
+      return res.status(401).json({ success: false, message: "Invalid Credentials - Password wrong" });
+    }
 
-    const { accessToken } = generateTokens(user.id, roleId);
+    const { accessToken } = generateTokens(user.id, user.role_id);
 
     res.json({
       success: true,
       data: {
         userId: user.id,
-        email_address: user.email_address,
-        role: roleId,
-        accessToken,
-        changePassword: user.change_password
+        email: user.email_address,
+        role: user.role_id,
+        accessToken
       }
     });
-
   } catch (error) {
     console.error("Login Error:", error);
     res.status(500).json({ success: false, message: error.message });

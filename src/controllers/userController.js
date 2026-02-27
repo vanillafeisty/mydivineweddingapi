@@ -1,5 +1,17 @@
 import { executeQuery } from "../config/database.js";
 
+
+export const getCurrentUser = async (req, res) => {
+  try {
+    const userId = req.user.id; // From the token
+    const [user] = await executeQuery("SELECT * FROM users WHERE profile_id = ?", [userId]);
+    res.json({ success: true, data: user });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+
 export const getAllUsers = async (req, res) => {
   try {
 
